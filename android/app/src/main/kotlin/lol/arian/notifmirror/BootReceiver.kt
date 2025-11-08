@@ -9,7 +9,11 @@ class BootReceiver : BroadcastReceiver() {
         if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
             LogStore.append(context, "BootReceiver ACTION_BOOT_COMPLETED")
             val svc = Intent(context, AlwaysOnService::class.java)
-            context.startForegroundService(svc)
+            try {
+                context.startForegroundService(svc)
+            } catch (e: Exception) {
+                try { LogStore.append(context, "Failed to auto-start service after boot: ${e.message ?: e.javaClass.simpleName}") } catch (_: Exception) {}
+            }
         }
     }
 }

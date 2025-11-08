@@ -30,7 +30,11 @@ class AlwaysOnService : Service() {
     override fun onCreate() {
         super.onCreate()
         LogStore.append(this, "AlwaysOnService onCreate")
-        startAsForeground()
+        val started = startAsForeground()
+        if (!started) {
+            // Foreground start failed; abort further initialization
+            return
+        }
         if (testSkipEngine) {
             LogStore.append(this, "AlwaysOnService skipping engine init (test)")
         } else {
@@ -42,7 +46,7 @@ class AlwaysOnService : Service() {
         } catch (_: Exception) {}
     }
 
-    private fun startAsForeground() {
+    private fun startAsForeground(): Boolean {
         val channelId = "message_mirror"
         val mgr = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
@@ -54,8 +58,19 @@ class AlwaysOnService : Service() {
             .setContentTitle("Message Mirror running")
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .build()
-        startForeground(1, notif)
-        LogStore.append(this, "AlwaysOnService startForeground")
+        return try {
+            startForeground(1, notif)
+            LogStore.append(this, "AlwaysOnService startForeground")
+            true
+        } catch (e: Exception) {
+            try {
+                LogStore.append(this, "Failed to start foreground service: ${e.message ?: e.javaClass.simpleName}. If this persists, ensure required permissions are granted and app is up to date.")
+                val prefs = getSharedPreferences("msg_mirror", MODE_PRIVATE)
+                prefs.edit().putBoolean("service_running", false).apply()
+            } catch (_: Exception) {}
+            stopSelf()
+            false
+        }
     }
 
     private fun initFlutterEngine() {

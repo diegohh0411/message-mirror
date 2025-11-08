@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import android.widget.Toast
 
 class MainActivity : FlutterActivity() {
     private val channelName = "msg_mirror_ctrl"
@@ -38,8 +39,22 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "startService" -> {
                         val intent = Intent(this, AlwaysOnService::class.java)
-                        startForegroundService(intent)
-                        result.success(null)
+                        try {
+                            startForegroundService(intent)
+                            result.success(null)
+                        } catch (e: Exception) {
+                            try {
+                                LogStore.append(this, "Failed to start monitoring service: ${e.message ?: e.javaClass.simpleName}. Please check permissions or update the app.")
+                                val p = getSharedPreferences("msg_mirror", Context.MODE_PRIVATE)
+                                p.edit().putBoolean("service_running", false).apply()
+                            } catch (_: Exception) {}
+                            runOnUiThread {
+                                try {
+                                    Toast.makeText(this, "Couldn't start monitoring service. Please check permissions or update the app.", Toast.LENGTH_LONG).show()
+                                } catch (_: Exception) {}
+                            }
+                            result.success(null)
+                        }
                     }
                     "stopService" -> {
                         val intent = Intent(this, AlwaysOnService::class.java)
