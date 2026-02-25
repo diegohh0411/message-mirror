@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir -p ~/.gradle
           echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m" >> ~/.gradle/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m" >> ~/.gradle/gradle.properties
           echo "android.useAndroidX=true" >> ~/.gradle/gradle.properties
 
       - name: Build release APK
