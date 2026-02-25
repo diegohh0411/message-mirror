@@ -33,24 +33,27 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Extract version from pubspec.yaml
+      - name: Extract version and locate APK
         id: version
         run: |
           VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          APK_PATH=$(find build/app/outputs/apk/release -name "*.apk" | head -1)
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "Found APK: $APK_PATH"
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: message-mirror-${{ steps.version.outputs.version }}
-          path: build/app/outputs/apk/release/app-release.apk
+          path: ${{ steps.version.outputs.apk_path }}
           retention-days: 30
 
       - name: Create Release (on push to main only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: softprops/action-gh-release@v1
         with:
-          files: build/app/outputs/apk/release/app-release.apk
+          files: ${{ steps.version.outputs.apk_path }}
           tag_name: v${{ steps.version.outputs.version }}-${{ github.run_number }}
           name: Message Mirror v${{ steps.version.outputs.version }}
           body: |
@@ -76,7 +79,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v1
         with:
-          files: build/app/outputs/apk/release/app-release.apk
+          files: ${{ steps.version.outputs.apk_path }}
           tag_name: v${{ steps.version.outputs.version }}-manual-${{ github.run_number }}
           name: Message Mirror v${{ steps.version.outputs.version }} (Manual Build)
           body: |
